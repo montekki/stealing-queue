@@ -1,7 +1,7 @@
 Work-stealer
 ============
 
-[![Build Status](https://travis-ci.org/montekki/stealing-queue.svg?branch=master)](https://travis-ci.org/montekki/stealing-queue)
+[![Build Status](https://travis-ci.com/montekki/stealing-queue.svg?branch=master)](https://travis-ci.com/montekki/stealing-queue)
 
 Basically it modells the work-stealing scheduler where workers can steal work from each other if they find themselves idle.
 
