@@ -1,0 +1,6 @@
+[package]
+name = "stealing-queue"
+version = "0.1.0"
+authors = ["Fedor Sakharov <fedor.sakharov@gmail.com>"]
+
+[dependencies]
