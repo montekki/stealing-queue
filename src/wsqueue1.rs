@@ -1,6 +1,16 @@
+//! A work-stealing queue implemented with a double-linked list
+//!
+//! Heavily based on a safe doubly linked deque from "Learning Rust
+//! With Entirely Too Many Linked Lists.
+
 use std::cell::RefCell;
 use std::rc::Rc;
 
+/// A double-ended queue implemented with a double-linked list.
+///
+/// [`push`]: #method.push
+/// [`pop`]: #method.pop
+/// [`steal`]: #method.steal
 #[derive(Debug)]
 pub struct WsQueue<T> {
     head: Link<T>,
@@ -30,6 +40,13 @@ impl<T> Node<T> {
 unsafe impl<T> Send for WsQueue<T> {}
 
 impl<T> WsQueue<T> {
+    /// Creates an empty `WsQueue`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let wsq: WsQueue<i32> = WsQueue::new();
+    /// ```
     pub fn new() -> Self {
         WsQueue {
             head: None,
@@ -38,6 +55,14 @@ impl<T> WsQueue<T> {
         }
     }
 
+    /// Enqueues an element
+    ///
+    /// # Examples
+    /// ```
+    /// let mut wsq = WsQueue::new();
+    ///
+    /// wsq.push(1);
+    /// ```
     pub fn push(&mut self, elem: T) {
         let new_head = Node::new(elem);
         match self.head.take() {
@@ -54,6 +79,18 @@ impl<T> WsQueue<T> {
         self.length += 1;
     }
 
+    /// Steals an element from the beginning of the queue
+    ///
+    /// # Examples
+    /// ```
+    /// let mut wsq = WsQueue::new();
+    ///
+    /// wsq.push(1);
+    /// wsq.push(2);
+    /// wsq.push(3);
+    ///
+    /// assert_eq!(wsq.steal(), Some(3));
+    /// ```
     pub fn steal(&mut self) -> Option<T> {
         self.head.take().map(|old_head| {
             match old_head.borrow_mut().next.take() {
@@ -70,6 +107,19 @@ impl<T> WsQueue<T> {
         })
     }
 
+    /// Dequeues the element from the end of the queue
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let mut wsq = WsQueue::new();
+    ///
+    /// wsq.push(1);
+    /// wsq.push(2);
+    /// wsq.push(3);
+    ///
+    /// assert_eq!(wsq.pop(), Some(1));
+    /// ```
     pub fn pop(&mut self) -> Option<T> {
         self.tail.take().map(|old_tail| {
             match old_tail.borrow_mut().prev.take() {
@@ -86,6 +136,18 @@ impl<T> WsQueue<T> {
         })
     }
 
+    /// Returns the number of enqueued elements
+    ///
+    /// # Examples
+    /// ```
+    /// let mut wsq = WsQueue::new();
+    ///
+    /// wsq.push(1);
+    /// wsq.push(2);
+    /// wsq.push(3);
+    ///
+    /// assert_eq!(wsq.len(), 3);
+    /// ```
     pub fn len(&self) -> usize {
         self.length
     }
