@@ -1,3 +1,11 @@
+//! A thread pool with work-stealing workers
+//!
+//! Implements a pool of workers that receive work with
+//! work-stealing queues and can steal work from each other.
+//! The pool adjusts the number of currently running workers
+//! according to a number of pending tasks. There is always
+//! at least one thread running but not more that a configured
+//! number.
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, RwLock};
 use std::{thread, time};
@@ -32,6 +40,7 @@ impl<F: FnOnce()> FnBox for F {
 type Job = Box<dyn FnBox + Send + 'static>;
 
 impl ThreadPool {
+    /// Creates a new thread pool
     pub fn new(size: usize) -> ThreadPool {
         assert!(size > 0);
         let mut workers = Vec::with_capacity(size);
@@ -55,6 +64,7 @@ impl ThreadPool {
         }
     }
 
+    /// Sends work to the pool
     pub fn execute<F>(&mut self, f: F)
     where
         F: FnOnce() + Send + 'static,
@@ -98,7 +108,12 @@ impl Drop for ThreadPool {
     fn drop(&mut self) {}
 }
 
+/// A worker that can execute tasks
+///
+/// It loops and tries to receive tasks from it's own
+/// queue or to steal tasks from other queues until it's dropped
 struct Worker {
+    // id is the index of our queue in the Queues vector
     id: usize,
     thread: Option<thread::JoinHandle<()>>,
     queues: Queues<Task>,
@@ -176,6 +191,7 @@ impl Worker {
         self.thread = Some(thread);
     }
 
+    /// Creates a new worker
     pub fn new(id: usize, q: Arc<RwLock<Vec<Mutex<WsQueue<Task>>>>>) -> Worker {
         let mut w = Worker {
             id: id,
