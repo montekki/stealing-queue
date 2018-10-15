@@ -77,7 +77,7 @@ impl ThreadPool {
             let mut a = self.queues.write().unwrap();
 
             if a.len() < self.max_workers {
-                println!("Too many tasks, spawning a new worker!");
+                info!("Too many tasks, spawning a new worker!");
                 a.push(Mutex::new(WsQueue::new()));
 
                 let w = Worker::new(a.len() - 1, self.queues.clone());
@@ -115,7 +115,7 @@ impl Worker {
             while !should_stop.load(Ordering::SeqCst) {
                 let qs = queues.read().unwrap();
 
-                println!("Thread {} qs.len {}", id, qs.len());
+                debug!("Thread {} qs.len {}", id, qs.len());
 
                 if qs.len() > id {
                     let mut work;
@@ -126,7 +126,7 @@ impl Worker {
                     }
                     match work {
                         None => {
-                            println!("Nothing is on the local queue for thread {}", id);
+                            debug!("Nothing is on the local queue for thread {}", id);
 
                             for i in 0..qs.len() {
                                 if i == id {
@@ -142,7 +142,7 @@ impl Worker {
                                 }
                                 match work {
                                     Some(_) => {
-                                        println!("Have managed to steal work from queue {}!", i);
+                                        debug!("Have managed to steal work from queue {}!", i);
                                         break;
                                     }
                                     _ => (),
@@ -153,17 +153,17 @@ impl Worker {
                     }
                     match work {
                         None => {
-                            println!("Could not steal from the other queues");
+                            debug!("Could not steal from the other queues");
                             thread::sleep(time::Duration::new(1, 0));
                         }
                         Some(t) => {
-                            println!("Got some work!");
+                            debug!("Got some work!");
                             match t {
                                 Task::Terminate => {
-                                    println!("Terminating worker {}", id);
+                                    debug!("Terminating worker {}", id);
                                 }
                                 Task::NewJob(j) => {
-                                    println!("Got new job in task {}", id);
+                                    debug!("Got new job in task {}", id);
                                     j.call_box();
                                 }
                             }
@@ -193,7 +193,7 @@ impl Drop for Worker {
         if let Some(thread) = self.thread.take() {
             self.should_stop.store(true, Ordering::SeqCst);
             thread.join().unwrap();
-            println!("Stopped worker {}", self.id);
+            info!("Stopped worker {}", self.id);
         }
     }
 }
