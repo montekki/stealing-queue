@@ -52,7 +52,7 @@ impl ThreadPool {
         }
 
         for i in 0..1 {
-            let w = Worker::new(i, arr.clone());
+            let w = Worker::new(i, &arr.clone());
             workers.push(w);
         }
 
@@ -90,7 +90,7 @@ impl ThreadPool {
                 info!("Too many tasks, spawning a new worker!");
                 a.push(Mutex::new(WsQueue::new()));
 
-                let w = Worker::new(a.len() - 1, self.queues.clone());
+                let w = Worker::new(a.len() - 1, &self.queues.clone());
                 self.workers.push(w);
             }
         }
@@ -139,32 +139,26 @@ impl Worker {
                         let mut myqueue = qs[id].lock().unwrap();
                         work = myqueue.pop();
                     }
-                    match work {
-                        None => {
-                            debug!("Nothing is on the local queue for thread {}", id);
+                    if work.is_none() {
+                        debug!("Nothing is on the local queue for thread {}", id);
 
-                            for i in 0..qs.len() {
-                                if i == id {
+                        for (i, _) in qs.iter().enumerate() {
+                            if i == id {
+                                continue;
+                            }
+                            {
+                                let mut lock = qs[i].try_lock();
+                                if let Ok(ref mut mutex) = lock {
+                                    work = mutex.pop();
+                                } else {
                                     continue;
                                 }
-                                {
-                                    let mut lock = qs[i].try_lock();
-                                    if let Ok(ref mut mutex) = lock {
-                                        work = mutex.pop();
-                                    } else {
-                                        continue;
-                                    }
-                                }
-                                match work {
-                                    Some(_) => {
-                                        debug!("Have managed to steal work from queue {}!", i);
-                                        break;
-                                    }
-                                    _ => (),
-                                }
+                            }
+                            if work.is_some() {
+                                debug!("Have managed to steal work from queue {}!", i);
+                                break;
                             }
                         }
-                        _ => (),
                     }
                     match work {
                         None => {
@@ -192,9 +186,9 @@ impl Worker {
     }
 
     /// Creates a new worker
-    pub fn new(id: usize, q: Arc<RwLock<Vec<Mutex<WsQueue<Task>>>>>) -> Worker {
+    pub fn new(id: usize, q: &Arc<RwLock<Vec<Mutex<WsQueue<Task>>>>>) -> Worker {
         let mut w = Worker {
-            id: id,
+            id,
             thread: None,
             queues: Arc::clone(&q),
             should_stop: Arc::new(AtomicBool::new(false)),
@@ -230,7 +224,7 @@ mod test {
             v.push(Mutex::new(WsQueue::new()));
         }
 
-        let _w = Worker::new(0, arr.clone());
+        let _w = Worker::new(0, &arr.clone());
 
         for i in 0..queuenum {
             let a = arr.read().unwrap();
