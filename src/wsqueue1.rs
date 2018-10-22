@@ -11,7 +11,7 @@ use std::rc::Rc;
 /// [`push`]: #method.push
 /// [`pop`]: #method.pop
 /// [`steal`]: #method.steal
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct WsQueue<T> {
     head: Link<T>,
     tail: Link<T>,
@@ -30,7 +30,7 @@ struct Node<T> {
 impl<T> Node<T> {
     fn new(elem: T) -> Rc<RefCell<Node<T>>> {
         Rc::new(RefCell::new(Node {
-            elem: elem,
+            elem,
             prev: None,
             next: None,
         }))
@@ -150,6 +150,11 @@ impl<T> WsQueue<T> {
     /// ```
     pub fn len(&self) -> usize {
         self.length
+    }
+
+    /// Checks if the queue is empty
+    pub fn is_empty(&self) -> bool {
+        self.length == 0
     }
 }
 
