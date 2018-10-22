@@ -37,7 +37,7 @@ impl<T> Node<T> {
     }
 }
 
-unsafe impl<T> Send for WsQueue<T> {}
+unsafe impl<T: Send> Send for WsQueue<T> {}
 
 impl<T> WsQueue<T> {
     /// Creates an empty `WsQueue`.
